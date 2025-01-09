@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Is it fucking raining?</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            height: 100%;
+            width: 100%;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        h1 {
+            font-family: Arial, sans-serif;
+            color: #333;
+        }
+    </style>
+</head>
+
+<body>
+    <h1 id="raining"></h1>
+
+    <script>
+        // Default New York coordinates
+        const NY_LAT = 40.7128;
+        const NY_LNG = -74.0060;
+        let watchId = null;
+
+        // Check for URL parameters first
+        function getQueryParams() {
+            const params = new URLSearchParams(window.location.search);
+            const lat = params.get('lat');
+            const lng = params.get('lng');
+
+            if (lat && lng) {
+                getTheFckingWeather(parseFloat(lat), parseFloat(lng), 'URL parameters');
+                return true;
+            }
+            return false;
+        }
+
+        // Get user's geolocation
+        function getLocation() {
+            // Clear any existing watch
+            if (watchId !== null) {
+                navigator.geolocation.clearWatch(watchId);
+                watchId = null;
+            }
+            if (navigator.geolocation) {
+                try {
+                    // First try a single getCurrentPosition call
+                    navigator.geolocation.getCurrentPosition(
+                        successCallback,
+                        (error) => {
+                            // If getCurrentPosition fails, try watchPosition as fallback
+                            watchId = navigator.geolocation.watchPosition(
+                                successCallback,
+                                errorCallback,
+                                {
+                                    enableHighAccuracy: true,
+                                    timeout: 10000,
+                                    maximumAge: 0
+                                }
+                            );
+                        },
+                        {
+                            enableHighAccuracy: true,
+                            timeout: 5000,
+                            maximumAge: 0
+                        }
+                    );
+                } catch (e) {
+                    errorCallback({
+                        code: 0,
+                        message: 'Unexpected error requesting location'
+                    });
+                }
+            } else {
+                errorCallback({
+                    code: 0,
+                    message: 'Geolocation not supported'
+                });
+            }
+        }
+
+        function successCallback(position) {
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+            getTheFckingWeather(lat, lng);
+
+            // Clear watch if we got a successful reading
+            if (watchId !== null) {
+                navigator.geolocation.clearWatch(watchId);
+                watchId = null;
+            }
+        }
+
+        function errorCallback(error) {
+            console.error('Error getting location:', error);
+        }
+
+        function isItRaining(value) {
+            document.getElementById('raining').innerHTML = value;
+        }
+
+        function getTheFckingWeather(lat, lng) {
+            lat = parseFloat(lat).toFixed(4);
+            lng = parseFloat(lng).toFixed(4);
+            // C++ !!!
+            Module.fetch_weather(lat, lng);
+        }
+
+        var Module = {
+            onRuntimeInitialized: function () {
+                if (!getQueryParams()) {
+                    getLocation();
+                }
+
+            }
+        }
+    </script>
+
+    <script async type="text/javascript" src="raining.js"></script>
+</body>
+
+</html>
